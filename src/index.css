@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color: #1f2340;
+  background: #f7f8fd;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(129, 91, 248, 0.10), transparent 28%),
+    radial-gradient(circle at top right, rgba(94, 207, 255, 0.08), transparent 22%),
+    linear-gradient(180deg, #fcfcff 0%, #f7f8fd 100%);
+  color: #1f2340;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+@layer components {
+  .page-panel {
+    @apply rounded-[22px] border border-white/80 bg-white shadow-[0_16px_38px_rgba(77,84,136,0.08)];
+  }
+
+  .card {
+    @apply page-panel p-5;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#7c4dff] to-[#635bff] px-4 py-2.5 font-medium text-white shadow-[0_10px_22px_rgba(105,76,255,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-[#e7eaf5] bg-white px-4 py-2.5 font-medium text-[#4f5578] transition hover:bg-[#f7f8ff];
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#ff6b87] to-[#ff5a5a] px-4 py-2.5 font-medium text-white shadow-[0_10px_24px_rgba(255,90,90,0.20)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-4 py-2.5 font-medium text-white shadow-[0_10px_24px_rgba(34,197,94,0.20)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-select {
+    @apply w-full rounded-2xl border border-[#e6e9f5] bg-white px-4 py-3 text-[#2f3554] shadow-sm outline-none transition placeholder:text-[#b0b7d0] focus:border-[#9a84ff] focus:ring-4 focus:ring-[#8b7cff]/10;
+  }
+
+  .form-textarea {
+    @apply resize-none;
+  }
+
+  .soft-chip {
+    @apply inline-flex items-center rounded-full bg-[#f2f4ff] px-3 py-1 text-xs font-medium text-[#6b72a5];
+  }
+
+  .section-title {
+    @apply text-[28px] font-semibold tracking-tight text-[#252a48];
+  }
+
+  .section-subtitle {
+    @apply mt-2 text-sm text-[#8c92b3];
+  }
+}

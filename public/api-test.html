@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API测试</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+    .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+    .status { padding: 10px; border-radius: 4px; margin: 10px 0; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>API测试页面</h1>
+  
+  <div class="section">
+    <h2>1. 健康检查</h2>
+    <button onclick="testHealth()">测试健康检查</button>
+    <div id="health-result"></div>
+  </div>
+
+  <div class="section">
+    <h2>2. 登录测试</h2>
+    <button onclick="testLogin()">使用user/user123登录</button>
+    <div id="login-result"></div>
+  </div>
+
+  <div class="section">
+    <h2>3. 获取任务列表</h2>
+    <button onclick="testGetTasks()">获取任务列表</button>
+    <div id="tasks-result"></div>
+  </div>
+
+  <div class="section">
+    <h2>4. 管理员登录测试</h2>
+    <button onclick="testAdminLogin()">使用admin/admin123登录</button>
+    <div id="admin-login-result"></div>
+  </div>
+
+  <div class="section">
+    <h2>5. 管理员获取任务</h2>
+    <button onclick="testAdminGetTasks()">管理员获取所有任务</button>
+    <div id="admin-tasks-result"></div>
+  </div>
+
+  <script>
+    const BASE_URL = 'http://localhost:3000/api';
+    let userToken = null;
+    let adminToken = null;
+
+    function showResult(divId, message, type = 'info') {
+      const div = document.getElementById(divId);
+      div.innerHTML = `<div class="status ${type}">${new Date().toLocaleTimeString()}: ${message}</div>`;
+    }
+
+    function showData(divId, data) {
+      const div = document.getElementById(divId);
+      div.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+    }
+
+    async function testHealth() {
+      try {
+        const response = await fetch(`${BASE_URL}/health`);
+        const data = await response.json();
+        showResult('health-result', '健康检查成功: ' + response.status, 'success');
+        showData('health-result', data);
+      } catch (error) {
+        showResult('health-result', '错误: ' + error.message, 'error');
+      }
+    }
+
+    async function testLogin() {
+      try {
+        const response = await fetch(`${BASE_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'user', password: 'user123' })
+        });
+        const data = await response.json();
+        if (data.token) {
+          userToken = data.token;
+          showResult('login-result', '登录成功!', 'success');
+          showData('login-result', data);
+        } else {
+          showResult('login-result', '登录失败', 'error');
+          showData('login-result', data);
+        }
+      } catch (error) {
+        showResult('login-result', '错误: ' + error.message, 'error');
+      }
+    }
+
+    async function testGetTasks() {
+      if (!userToken) {
+        showResult('tasks-result', '请先登录!', 'error');
+        return;
+      }
+      try {
+        const response = await fetch(`${BASE_URL}/tasks`, {
+          headers: { 'Authorization': `Bearer ${userToken}` }
+        });
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          showResult('tasks-result', `获取成功! 共 ${data.length} 个任务`, 'success');
+          showData('tasks-result', data);
+        } else {
+          showResult('tasks-result', '返回数据格式不对', 'error');
+          showData('tasks-result', data);
+        }
+      } catch (error) {
+        showResult('tasks-result', '错误: ' + error.message, 'error');
+      }
+    }
+
+    async function testAdminLogin() {
+      try {
+        const response = await fetch(`${BASE_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'admin', password: 'admin123' })
+        });
+        const data = await response.json();
+        if (data.token) {
+          adminToken = data.token;
+          showResult('admin-login-result', '管理员登录成功!', 'success');
+          showData('admin-login-result', data);
+        } else {
+          showResult('admin-login-result', '登录失败', 'error');
+          showData('admin-login-result', data);
+        }
+      } catch (error) {
+        showResult('admin-login-result', '错误: ' + error.message, 'error');
+      }
+    }
+
+    async function testAdminGetTasks() {
+      if (!adminToken) {
+        showResult('admin-tasks-result', '请先登录管理员!', 'error');
+        return;
+      }
+      try {
+        const response = await fetch(`${BASE_URL}/tasks`, {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          showResult('admin-tasks-result', `获取成功! 共 ${data.length} 个任务`, 'success');
+          showData('admin-tasks-result', data);
+        } else {
+          showResult('admin-tasks-result', '返回数据格式不对', 'error');
+          showData('admin-tasks-result', data);
+        }
+      } catch (error) {
+        showResult('admin-tasks-result', '错误: ' + error.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>
