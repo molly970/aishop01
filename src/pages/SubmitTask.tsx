@@ -4,9 +4,19 @@ import { AlertCircle, ArrowLeft, CheckCircle, Gift, PlusCircle, Trophy } from 'l
 import { createTask } from '../api/api';
 import { useAuthStore } from '../store/authStore';
 
+const categoryOptions = [
+  { value: 'model_training', label: 'AI训练' },
+  { value: 'data_analysis', label: '数据处理' },
+  { value: 'other', label: '内容生成' },
+  { value: 'design', label: '设计创意' },
+  { value: 'dev', label: '开发任务' },
+  { value: 'misc', label: '其他' },
+];
+
 export default function SubmitTask() {
   const [formData, setFormData] = useState({
     title: '',
+    type: 'model_training',
     description: '',
     rewardPoints: '',
     rewardItem: '',
@@ -59,6 +69,7 @@ export default function SubmitTask() {
     setError('');
     setFormData({
       title: '',
+      type: 'model_training',
       description: '',
       rewardPoints: '',
       rewardItem: '',
@@ -73,7 +84,7 @@ export default function SubmitTask() {
     setError('');
     const effectiveDeadline = formData.expected_deadline || getDefaultDeadline();
 
-    if (!formData.title || !effectiveDeadline) {
+    if (!formData.title.trim() || !formData.type || !effectiveDeadline) {
       setError('请填写所有必填项。');
       setLoading(false);
       return;
@@ -99,12 +110,12 @@ export default function SubmitTask() {
 
     try {
       const result = await createTask({
-        title: formData.title,
-        description: formData.description,
-        type: 'other',
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        type: formData.type,
         reward: selectedRewards.points ? Number(formData.rewardPoints) : 0,
         reward_type: selectedRewards.points && selectedRewards.item ? 'both' : selectedRewards.points ? 'points' : 'item',
-        reward_item: selectedRewards.item ? formData.rewardItem : undefined,
+        reward_item: selectedRewards.item ? formData.rewardItem.trim() : undefined,
         difficulty: 'medium',
         expected_deadline: effectiveDeadline,
       });
@@ -149,10 +160,7 @@ export default function SubmitTask() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center space-x-4">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center text-gray-600 hover:text-gray-800"
-        >
+        <button onClick={() => navigate('/')} className="flex items-center text-gray-600 hover:text-gray-800">
           <ArrowLeft className="h-5 w-5" />
           <span>返回</span>
         </button>
@@ -176,12 +184,30 @@ export default function SubmitTask() {
           </div>
 
           <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              任务类别 <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              className="form-input"
+            >
+              {categoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-4">
             <label className="mb-2 block text-sm font-medium text-gray-700">任务描述</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="请详细描述任务内容、需求和交付物。"
+              placeholder="请详细描述任务内容、需求和交付标准"
               rows={4}
               className="form-textarea"
             />
@@ -208,9 +234,7 @@ export default function SubmitTask() {
                 />
                 <div
                   className={`flex h-5 w-5 items-center justify-center rounded border-2 ${
-                    selectedRewards.points
-                      ? 'border-primary-600 bg-primary-600'
-                      : 'border-gray-300'
+                    selectedRewards.points ? 'border-primary-600 bg-primary-600' : 'border-gray-300'
                   }`}
                 >
                   {selectedRewards.points ? <CheckCircle className="h-3 w-3 text-white" /> : null}
@@ -220,11 +244,7 @@ export default function SubmitTask() {
                     selectedRewards.points ? 'text-primary-600' : 'text-gray-400'
                   }`}
                 />
-                <span
-                  className={`font-medium ${
-                    selectedRewards.points ? 'text-primary-700' : 'text-gray-700'
-                  }`}
-                >
+                <span className={`font-medium ${selectedRewards.points ? 'text-primary-700' : 'text-gray-700'}`}>
                   澳维豆奖励
                 </span>
               </label>
@@ -250,15 +270,9 @@ export default function SubmitTask() {
                   {selectedRewards.item ? <CheckCircle className="h-3 w-3 text-white" /> : null}
                 </div>
                 <Gift
-                  className={`h-5 w-5 ${
-                    selectedRewards.item ? 'text-primary-600' : 'text-gray-400'
-                  }`}
+                  className={`h-5 w-5 ${selectedRewards.item ? 'text-primary-600' : 'text-gray-400'}`}
                 />
-                <span
-                  className={`font-medium ${
-                    selectedRewards.item ? 'text-primary-700' : 'text-gray-700'
-                  }`}
-                >
+                <span className={`font-medium ${selectedRewards.item ? 'text-primary-700' : 'text-gray-700'}`}>
                   实物奖励
                 </span>
               </label>

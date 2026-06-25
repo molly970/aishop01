@@ -33,6 +33,7 @@ const taskTypes: Record<string, string> = {
   other: '内容生成',
   design: '设计创意',
   dev: '开发任务',
+  misc: '其他',
 };
 
 const statusLabels: Record<string, string> = {

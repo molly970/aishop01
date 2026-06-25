@@ -26,21 +26,22 @@ import {
 
 const typeTabs = [
   { value: 'all', label: '全部' },
-  { value: 'ai_research', label: '推荐' },
-  { value: 'model_training', label: 'AI 训练' },
+  { value: 'model_training', label: 'AI训练' },
   { value: 'data_analysis', label: '数据处理' },
   { value: 'other', label: '内容生成' },
   { value: 'design', label: '设计创意' },
   { value: 'dev', label: '开发任务' },
+  { value: 'misc', label: '其他' },
 ];
 
 const typeLabelMap: Record<string, string> = {
-  ai_research: 'AI 训练',
-  model_training: 'AI 训练',
+  ai_research: 'AI训练',
+  model_training: 'AI训练',
   data_analysis: '数据处理',
   other: '内容生成',
   design: '设计创意',
   dev: '开发任务',
+  misc: '其他',
 };
 
 const difficultyLabels: Record<string, string> = {
@@ -59,6 +60,9 @@ const matchesKeywordCategory = (task: Task, keywords: string[]) => {
 
 const matchesFilterType = (task: Task, filterType: string) => {
   if (filterType === 'all') return true;
+  if (filterType === 'model_training') {
+    return task.type === 'model_training' || task.type === 'ai_research';
+  }
   if (filterType === 'design') {
     return task.type === 'design' || (task.type === 'other' && matchesKeywordCategory(task, designKeywords));
   }
