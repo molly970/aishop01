@@ -187,6 +187,7 @@ export default function TaskDetail() {
 
   const canAssignClaims = user?.role === 'main_admin' || user?.role === 'expert' || task?.submitter_id === user?.id;
   const isAssigned = task?.assignee_id === user?.id;
+  const hasClaimedCurrentTask = Boolean(user?.id && task?.claims?.some((claim) => claim.user_id === user.id));
   const progressReadonly = task?.status === 'completed';
   const showSubmitResultAction = viewMode !== 'progress';
   const progressLogs = useMemo(() => task?.progressLogs || [], [task?.progressLogs]);
@@ -353,15 +354,17 @@ export default function TaskDetail() {
         <div className="card">
           <button
             onClick={() => void handleClaim()}
-            disabled={actionLoading}
-            className="btn-primary flex w-full items-center justify-center space-x-2"
+            disabled={actionLoading || hasClaimedCurrentTask}
+            className={`flex w-full items-center justify-center space-x-2 rounded-2xl px-6 py-4 text-base font-semibold transition ${
+              hasClaimedCurrentTask ? 'cursor-not-allowed bg-gray-200 text-gray-500' : 'btn-primary'
+            }`}
           >
             {actionLoading ? (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
               <Users2 className="h-5 w-5" />
             )}
-            <span>申领任务</span>
+            <span>{hasClaimedCurrentTask ? '已申领' : '申领任务'}</span>
           </button>
         </div>
       )}

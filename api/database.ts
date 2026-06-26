@@ -131,6 +131,36 @@ function ensureTaskRecycleColumns() {
   });
 }
 
+function ensureUserDisableColumns() {
+  db.all('PRAGMA table_info(users)', async (err, columns: any[]) => {
+    if (err) {
+      console.error('Failed to inspect user columns:', err.message);
+      return;
+    }
+
+    const columnNames = new Set((columns || []).map((column) => column.name));
+
+    try {
+      if (!columnNames.has('is_disabled')) {
+        await runAsync('ALTER TABLE users ADD COLUMN is_disabled INTEGER NOT NULL DEFAULT 0');
+      }
+      if (!columnNames.has('disabled_at')) {
+        await runAsync('ALTER TABLE users ADD COLUMN disabled_at TIMESTAMP');
+      }
+      if (!columnNames.has('disabled_by')) {
+        await runAsync('ALTER TABLE users ADD COLUMN disabled_by TEXT');
+      }
+      if (!columnNames.has('disabled_by_name')) {
+        await runAsync('ALTER TABLE users ADD COLUMN disabled_by_name TEXT');
+      }
+
+      await runAsync('CREATE INDEX IF NOT EXISTS idx_users_is_disabled ON users(is_disabled)');
+    } catch (migrationError: any) {
+      console.error('Failed to prepare user disable columns:', migrationError.message);
+    }
+  });
+}
+
 function initDatabase() {
   db.serialize(() => {
     db.run(`
@@ -144,6 +174,8 @@ function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    ensureUserDisableColumns();
 
     db.run(`
       CREATE TABLE IF NOT EXISTS tasks (

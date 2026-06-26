@@ -15,6 +15,10 @@ type DbUser = {
   username: string;
   name: string;
   role: string;
+  is_disabled?: number;
+  disabled_at?: string | null;
+  disabled_by?: string | null;
+  disabled_by_name?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -203,6 +207,8 @@ const createUserRecord = async (payload: {
     username: payload.username,
     name: payload.name,
     role: payload.role,
+    is_disabled: 0,
+    disabled_at: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -240,7 +246,7 @@ router.get('/users', authenticateToken, async (req: any, res) => {
 
   try {
     const rows = await allAsync<DbUser>(
-      'SELECT id, username, name, role, created_at, updated_at FROM users ORDER BY created_at DESC'
+      'SELECT id, username, name, role, is_disabled, disabled_at, disabled_by, disabled_by_name, created_at, updated_at FROM users ORDER BY created_at DESC'
     );
     res.json(rows);
   } catch (error: any) {
@@ -444,6 +450,60 @@ router.put('/users/:id/reset-password', authenticateToken, async (req: any, res)
     res.json({ message: '密码重置成功', temporaryPassword: rawPassword });
   } catch (error: any) {
     res.status(500).json({ error: error.message || '密码重置失败' });
+  }
+});
+
+router.put('/users/:id/disabled', authenticateToken, async (req: any, res) => {
+  if (!ensureAdminAccess(req, res)) return;
+
+  const targetUserId = req.params.id;
+  const disabled = Boolean(req.body?.disabled);
+
+  if (targetUserId === req.user.id) {
+    return res.status(400).json({ error: '不能禁用当前登录账号' });
+  }
+
+  try {
+    const user = await getAsync<DbUser>('SELECT id, username, name, role, is_disabled FROM users WHERE id = ?', [targetUserId]);
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+    if (req.user.role === 'admin' && user.role === 'main_admin') {
+      return res.status(403).json({ error: '管理员不能禁用主管理员账号' });
+    }
+
+    await runAsync(
+      'UPDATE users SET is_disabled = ?, disabled_at = ?, disabled_by = ?, disabled_by_name = ?, updated_at = ? WHERE id = ?',
+      [
+        disabled ? 1 : 0,
+        disabled ? new Date().toISOString() : null,
+        disabled ? req.user.id : null,
+        disabled ? req.user.name : null,
+        new Date().toISOString(),
+        targetUserId,
+      ]
+    );
+
+    logAdminAction(
+      req.user,
+      disabled ? 'user_disable' : 'user_enable',
+      `${disabled ? '禁用' : '启用'}了用户 ${user.username}（${user.name}）`,
+      targetUserId
+    );
+
+    res.json({
+      message: disabled ? '用户已禁用' : '用户已启用',
+      user: {
+        ...user,
+        is_disabled: disabled ? 1 : 0,
+        disabled_at: disabled ? new Date().toISOString() : null,
+        disabled_by: disabled ? req.user.id : null,
+        disabled_by_name: disabled ? req.user.name : null,
+        updated_at: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || '更新用户状态失败' });
   }
 });
 

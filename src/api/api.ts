@@ -7,6 +7,10 @@ export interface User {
   username: string;
   name: string;
   role: string;
+  is_disabled?: number;
+  disabled_at?: string | null;
+  disabled_by?: string | null;
+  disabled_by_name?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -635,6 +639,22 @@ export const resetUserPassword = async (id: string, password?: string) => {
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || '重置密码失败');
+  }
+  return data;
+};
+
+export const updateUserDisabled = async (id: string, disabled: boolean) => {
+  const response = await fetch(`${BASE_URL}/admin/users/${id}/disabled`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ disabled }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || '更新用户状态失败');
   }
   return data;
 };

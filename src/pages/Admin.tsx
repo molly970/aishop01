@@ -18,6 +18,7 @@ import {
   importUsers,
   resetUserPassword,
   setTaskPublicity,
+  updateUserDisabled,
   updateUserRole,
 } from '../api/api';
 import { useAuthStore } from '../store/authStore';
@@ -28,12 +29,15 @@ import {
   CheckSquare,
   Clock,
   Download,
+  FileText,
   KeyRound,
   Shield,
   Square,
   Trash2,
   Upload,
+  UserCheck,
   Users,
+  UserX,
 } from 'lucide-react';
 import { usePagination } from '../hooks/usePagination';
 
@@ -59,6 +63,8 @@ const actionTypeLabels: Record<string, string> = {
   task_assign: '任务分配',
   submission_review: '结果审核',
   user_password_reset: '密码重置',
+  user_disable: '用户禁用',
+  user_enable: '用户启用',
   user_delete: '账号删除',
   user_batch_delete: '批量删除账号',
   task_delete: '任务删除',
@@ -315,6 +321,41 @@ export default function Admin() {
     }
   };
 
+  const handleToggleUserDisabled = async (targetUser: User) => {
+    const nextDisabled = Number(targetUser.is_disabled || 0) !== 1;
+    const confirmed = window.confirm(
+      nextDisabled
+        ? `确认禁用账号“${targetUser.username}”吗？禁用后该用户将无法登录，但历史记录会被保留。`
+        : `确认启用账号“${targetUser.username}”吗？启用后该用户可重新登录。`
+    );
+    if (!confirmed) return;
+
+    setActionUserId(targetUser.id);
+    try {
+      const result = await updateUserDisabled(targetUser.id, nextDisabled);
+      const updatedUser = result.user;
+      setUsers((current) =>
+        current.map((item) =>
+          item.id === targetUser.id
+            ? {
+                ...item,
+                is_disabled: updatedUser?.is_disabled ?? (nextDisabled ? 1 : 0),
+                disabled_at: updatedUser?.disabled_at ?? (nextDisabled ? new Date().toISOString() : null),
+                disabled_by: updatedUser?.disabled_by ?? null,
+                disabled_by_name: updatedUser?.disabled_by_name ?? null,
+                updated_at: updatedUser?.updated_at ?? new Date().toISOString(),
+              }
+            : item
+        )
+      );
+      window.alert(result.message || (nextDisabled ? '用户已禁用' : '用户已启用'));
+    } catch (error: any) {
+      window.alert(error.message || '更新用户状态失败');
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
   const handleToggleUser = (targetUserId: string) => {
     setSelectedUserIds((current) =>
       current.includes(targetUserId) ? current.filter((id) => id !== targetUserId) : [...current, targetUserId]
@@ -471,7 +512,7 @@ export default function Admin() {
             activeTab === 'tasks' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          <Trash2 className="h-4 w-4" />
+          <FileText className="h-4 w-4" />
           <span>任务管理</span>
         </button>
         {isMainAdmin && (
@@ -495,7 +536,7 @@ export default function Admin() {
               taskView === 'active' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            <Trash2 className="h-4 w-4" />
+            <FileText className="h-4 w-4" />
             <span>任务列表</span>
           </button>
           {isMainAdmin && (
@@ -627,6 +668,7 @@ export default function Admin() {
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">用户名</th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">花名</th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">角色</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">状态</th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">注册时间</th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">操作</th>
                     </tr>
@@ -685,6 +727,17 @@ export default function Admin() {
                               </span>
                             )}
                           </td>
+                          <td className="whitespace-nowrap px-6 py-4">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                                Number(item.is_disabled || 0) === 1
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-emerald-100 text-emerald-700'
+                              }`}
+                            >
+                              {Number(item.is_disabled || 0) === 1 ? '已禁用' : '正常'}
+                            </span>
+                          </td>
                           <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{formatDate(item.created_at)}</td>
                           <td className="px-6 py-4 text-sm">
                             {isSelf ? (
@@ -703,6 +756,22 @@ export default function Admin() {
                                 >
                                   <KeyRound className="h-4 w-4" />
                                   <span>{busy ? '处理中...' : adminCannotReset ? '不可重置主管理员' : '重置密码'}</span>
+                                </button>
+                                <button
+                                  onClick={() => void handleToggleUserDisabled(item)}
+                                  disabled={busy || adminCannotReset}
+                                  className={`inline-flex items-center gap-1 ${
+                                    Number(item.is_disabled || 0) === 1
+                                      ? 'text-emerald-600 hover:text-emerald-700'
+                                      : 'text-red-600 hover:text-red-700'
+                                  } disabled:cursor-not-allowed disabled:text-gray-300`}
+                                >
+                                  {Number(item.is_disabled || 0) === 1 ? (
+                                    <UserCheck className="h-4 w-4" />
+                                  ) : (
+                                    <UserX className="h-4 w-4" />
+                                  )}
+                                  <span>{Number(item.is_disabled || 0) === 1 ? '启用用户' : '禁用用户'}</span>
                                 </button>
                                 {isMainAdmin && (
                                   <button

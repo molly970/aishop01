@@ -23,6 +23,10 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ error: '用户名或密码错误' });
     }
 
+    if (Number(user.is_disabled) === 1) {
+      return res.status(403).json({ error: '该账号已被禁用，请联系管理员' });
+    }
+
     try {
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
@@ -60,12 +64,21 @@ const authenticateToken = (req: any, res: any, next: any) => {
       return res.status(403).json({ error: '无效的 token' });
     }
 
-    db.get('SELECT id, username, name, role FROM users WHERE id = ?', [decoded.id], (queryErr, user) => {
+    db.get('SELECT id, username, name, role, is_disabled FROM users WHERE id = ?', [decoded.id], (queryErr, user: any) => {
       if (queryErr || !user) {
         return res.status(403).json({ error: '用户不存在' });
       }
 
-      req.user = user;
+      if (Number(user.is_disabled) === 1) {
+        return res.status(403).json({ error: '该账号已被禁用' });
+      }
+
+      req.user = {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+      };
       next();
     });
   });
