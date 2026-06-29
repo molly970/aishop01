@@ -31,6 +31,7 @@ import {
   Download,
   FileText,
   KeyRound,
+  Search,
   Shield,
   Square,
   Trash2,
@@ -105,6 +106,8 @@ export default function Admin() {
   const [importingUsers, setImportingUsers] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [taskSearch, setTaskSearch] = useState('');
   const [createUserForm, setCreateUserForm] = useState({
     username: '',
     name: '',
@@ -118,9 +121,31 @@ export default function Admin() {
   const creatableRoleOptions = isMainAdmin
     ? baseRoleOptions
     : baseRoleOptions.filter((option) => option.value !== 'main_admin');
-  const usersPagination = usePagination(users, [activeTab, users.length]);
-  const tasksPagination = usePagination(tasks, [activeTab, taskView, tasks.length]);
-  const recycledTasksPagination = usePagination(recycledTasks, [activeTab, taskView, recycledTasks.length]);
+  const normalizedUserSearch = userSearch.trim().toLowerCase();
+  const normalizedTaskSearch = taskSearch.trim().toLowerCase();
+  const filteredUsers = useMemo(
+    () =>
+      normalizedUserSearch
+        ? users.filter((item) => item.username.toLowerCase().includes(normalizedUserSearch))
+        : users,
+    [normalizedUserSearch, users]
+  );
+  const matchesTaskKeyword = (item: Task) => {
+    if (!normalizedTaskSearch) return true;
+    return [item.title, item.submitter_name]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(normalizedTaskSearch));
+  };
+  const filteredTasks = useMemo(() => tasks.filter(matchesTaskKeyword), [normalizedTaskSearch, tasks]);
+  const filteredRecycledTasks = useMemo(() => recycledTasks.filter(matchesTaskKeyword), [normalizedTaskSearch, recycledTasks]);
+  const usersPagination = usePagination(filteredUsers, [activeTab, users.length, normalizedUserSearch]);
+  const tasksPagination = usePagination(filteredTasks, [activeTab, taskView, tasks.length, normalizedTaskSearch]);
+  const recycledTasksPagination = usePagination(filteredRecycledTasks, [
+    activeTab,
+    taskView,
+    recycledTasks.length,
+    normalizedTaskSearch,
+  ]);
   const logsPagination = usePagination(logs, [activeTab, logs.length]);
 
   useEffect(() => {
@@ -553,6 +578,20 @@ export default function Admin() {
         </div>
       )}
 
+      {activeTab === 'tasks' && (
+        <div className="card">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              value={taskSearch}
+              onChange={(event) => setTaskSearch(event.target.value)}
+              className="form-input pl-10"
+              placeholder="按任务名称/任务发布方搜索"
+            />
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
@@ -631,7 +670,19 @@ export default function Admin() {
             </div>
           </div>
 
-          {users.length === 0 ? (
+          <div className="card">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                value={userSearch}
+                onChange={(event) => setUserSearch(event.target.value)}
+                className="form-input pl-10"
+                placeholder="按用户名搜索"
+              />
+            </div>
+          </div>
+
+          {filteredUsers.length === 0 ? (
             <div className="card py-12 text-center">
               <Users className="mx-auto mb-4 h-16 w-16 text-gray-300" />
               <p className="text-gray-500">暂无用户</p>
@@ -807,7 +858,7 @@ export default function Admin() {
         </div>
       ) : activeTab === 'tasks' ? (
         taskView === 'recycle' && isMainAdmin ? (
-          recycledTasks.length === 0 ? (
+          filteredRecycledTasks.length === 0 ? (
             <div className="card py-12 text-center">
               <Archive className="mx-auto mb-4 h-16 w-16 text-gray-300" />
               <p className="text-gray-500">回收站暂无任务</p>
@@ -850,7 +901,7 @@ export default function Admin() {
               </div>
             </div>
           )
-        ) : tasks.length === 0 ? (
+        ) : filteredTasks.length === 0 ? (
           <div className="card py-12 text-center">
             <Trash2 className="mx-auto mb-4 h-16 w-16 text-gray-300" />
             <p className="text-gray-500">暂无任务</p>
